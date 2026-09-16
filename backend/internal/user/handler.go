@@ -54,3 +54,40 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+type loginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	var request loginRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	token, user, err := h.service.Login(
+		r.Context(),
+		LoginInput{
+			Email:    request.Email,
+			Password: request.Password,
+		},
+	)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	response := map[string]any{
+		"token": token,
+		"user":  user,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(response)
+}

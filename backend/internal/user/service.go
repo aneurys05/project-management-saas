@@ -6,16 +6,19 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aneurys05/project-management-saas/internal/auth"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Service struct {
 	repository *Repository
+	jwtSecret  string
 }
 
-func NewService(repository *Repository) *Service {
+func NewService(repository *Repository, jwtSecret string) *Service {
 	return &Service{
 		repository: repository,
+		jwtSecret:  jwtSecret,
 	}
 }
 
@@ -59,4 +62,38 @@ func (s *Service) Register(
 		string(passwordHash),
 		input.Name,
 	)
+}
+
+type LoginInput struct {
+	Email    string
+	Password string
+}
+
+func (s *Service) Login(
+	ctx context.Context,
+	input LoginInput,
+) (string, *User, error) {
+
+	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
+
+	user, err := s.repository.FindByEmail(ctx, input.Email)
+	if err != nil {
+		return "", nil, errors.New("invalid email or password")
+	}
+
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(user.PasswordHash),
+		[]byte(input.Password),
+	)
+
+	if err != nil {
+		return "", nil, errors.New("invalid email or password")
+	}
+
+	token, err := auth.GenerateToken(user.ID, s.jwtSecret)
+	if err != nil {
+		return "", nil, fmt.Errorf("generate token: %w", err)
+	}
+
+	return token, user, nil
 }

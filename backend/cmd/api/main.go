@@ -17,6 +17,11 @@ func main() {
 		log.Fatal("DATABASE_URL is not set")
 	}
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET is not set")
+	}
 	db, err := database.NewPool(databaseURL)
 	if err != nil {
 		log.Fatalf("database connection failed: %v", err)
@@ -25,7 +30,7 @@ func main() {
 
 	// User dependencies
 	userRepository := user.NewRepository(db)
-	userService := user.NewService(userRepository)
+	userService := user.NewService(userRepository, jwtSecret)
 	userHandler := user.NewHandler(userService)
 
 	mux := http.NewServeMux()
@@ -52,9 +57,15 @@ func main() {
 		Handler: mux,
 	}
 
+	mux.HandleFunc(
+		"POST /api/v1/auth/login",
+		userHandler.Login,
+	)
+
 	log.Println("API server running on http://localhost:8080")
 
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
+
 }

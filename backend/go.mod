@@ -2,7 +2,10 @@ module github.com/aneurys05/project-management-saas
 
 go 1.26.0
 
-require github.com/jackc/pgx/v5 v5.11.0
+require (
+	github.com/jackc/pgx/v5 v5.11.0
+	golang.org/x/crypto v0.57.0
+)
 
 require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
