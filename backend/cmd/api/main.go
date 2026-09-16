@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/aneurys05/project-management-saas/internal/auth"
 	"github.com/aneurys05/project-management-saas/internal/database"
 	"github.com/aneurys05/project-management-saas/internal/user"
 )
@@ -67,5 +68,28 @@ func main() {
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
+
+	mux.Handle(
+		"GET /api/v1/me",
+		auth.AuthMiddleware(jwtSecret)(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+				userID, ok := auth.UserIDFromContext(r.Context())
+
+				if !ok {
+					http.Error(w, "user ID not found", http.StatusInternalServerError)
+					return
+				}
+
+				response := map[string]string{
+					"user_id": userID,
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+
+				json.NewEncoder(w).Encode(response)
+			}),
+		),
+	)
 
 }
